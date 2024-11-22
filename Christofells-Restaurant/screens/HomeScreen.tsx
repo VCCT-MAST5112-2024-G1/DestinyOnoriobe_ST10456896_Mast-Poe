@@ -1,4 +1,3 @@
-// screens/HomeScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,12 +9,22 @@ export default function HomeScreen({ navigation, route }: HomeScreenProps) {
   const [menuItems, setMenuItems] = useState<{ dishName: string, description: string, course: string, price: number }[]>([]);
 
   useEffect(() => {
-    // Check if newItem exists and is defined in route.params
     if (route.params?.newItem) {
       setMenuItems((prevItems) => [...prevItems, route.params.newItem as { dishName: string; description: string; course: string; price: number }]);
     }
   }, [route.params?.newItem]);
-  
+
+  const calculateAveragePrice = (course: string) => {
+    const filteredItems = menuItems.filter(item => item.course === course);
+    const totalPrice = filteredItems.reduce((acc, item) => acc + item.price, 0);
+    return filteredItems.length > 0 ? totalPrice / filteredItems.length : 0;
+  };
+
+  // Calculate average prices for each course type
+  const startersAvg = calculateAveragePrice('Starters');
+  const mainsAvg = calculateAveragePrice('Mains');
+  const dessertsAvg = calculateAveragePrice('Desserts');
+
   return (
     <View style={styles.container}>
       <Image source={require('../assets/logo.png')} style={{ width: 200, height: 200 }} />
@@ -24,14 +33,24 @@ export default function HomeScreen({ navigation, route }: HomeScreenProps) {
         <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('AddMenu')}>
           <Text style={styles.buttonText}>Add Menu</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('FilterMenu')}>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={() => navigation.navigate('FilterMenu', { menuItems })}
+        >
           <Text style={styles.buttonText}>Filtered Menu</Text>
         </TouchableOpacity>
       </View>
       
       <Text style={styles.total}>Total Items: {menuItems.length}</Text>
 
-      <FlatList style={{ width: '100%' }}
+      <View style={styles.averageContainer}>
+        <Text style={styles.averageText}>Starters Average: ZAR {startersAvg.toFixed(2)}</Text>
+        <Text style={styles.averageText}>Mains Average: ZAR {mainsAvg.toFixed(2)}</Text>
+        <Text style={styles.averageText}>Desserts Average: ZAR {dessertsAvg.toFixed(2)}</Text>
+      </View>
+
+      <FlatList
+        style={{ width: '100%' }}
         data={menuItems}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
@@ -97,5 +116,15 @@ const styles = StyleSheet.create({
   },
   dishPriceText: {
     color: 'white',
+  },
+  averageContainer: {
+    marginVertical: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  averageText: {
+    color: 'white',
+    fontSize: 18,
+    marginBottom: 10,
   },
 });
