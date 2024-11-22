@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 
@@ -10,14 +10,41 @@ export default function HomeScreen({ navigation, route }: HomeScreenProps) {
 
   useEffect(() => {
     if (route.params?.newItem) {
-      setMenuItems((prevItems) => [...prevItems, route.params.newItem as { dishName: string; description: string; course: string; price: number }]);
+      const newItem = route.params.newItem;
+      
+      // Validate the price to ensure it's a number
+      const price = isNaN(newItem.price) ? 0 : Number(newItem.price);
+
+      setMenuItems((prevItems) => [
+        ...prevItems, 
+        { ...newItem, price } // Ensure price is a number
+      ]);
     }
   }, [route.params?.newItem]);
 
   const calculateAveragePrice = (course: string) => {
-    const filteredItems = menuItems.filter(item => item.course === course);
+    const filteredItems = menuItems.filter(item => item.course === course && !isNaN(item.price));
     const totalPrice = filteredItems.reduce((acc, item) => acc + item.price, 0);
     return filteredItems.length > 0 ? totalPrice / filteredItems.length : 0;
+  };
+
+  // Function to delete a menu item
+  const deleteItem = (index: number) => {
+    Alert.alert(
+      'Delete Item',
+      'Are you sure you want to delete this dish?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'OK',
+          onPress: () => {
+            const updatedMenuItems = menuItems.filter((_, itemIndex) => itemIndex !== index);
+            setMenuItems(updatedMenuItems); // Update the state with the new list
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   // Calculate average prices for each course type
@@ -49,17 +76,28 @@ export default function HomeScreen({ navigation, route }: HomeScreenProps) {
         <Text style={styles.averageText}>Desserts Average: ZAR {dessertsAvg.toFixed(2)}</Text>
       </View>
 
+      {/* Display Existing Items */}
+      <Text style={styles.sectionTitle}>Current Menu Items</Text>
       <FlatList
         style={{ width: '100%' }}
         data={menuItems}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
+        keyExtractor={(_, index) => index.toString()}
+        renderItem={({ item, index }) => (
           <View style={styles.menuItem}>
-            <Text style={styles.dishNameandCourse}>{item.dishName} - {item.course}</Text>
-            <Text style={styles.dishDescriptionText}>{item.description}</Text>
-            <Text style={styles.dishPriceText}>ZAR {item.price.toFixed(2)}</Text>
+            <View style={styles.itemDetails}>
+              <Text style={styles.dishNameandCourse}>{item.dishName} - {item.course}</Text>
+              <Text style={styles.dishDescriptionText}>{item.description}</Text>
+              <Text style={styles.dishPriceText}>ZAR {item.price.toFixed(2)}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => deleteItem(index)}
+            >
+              <Text style={styles.deleteButtonText}>Remove</Text>
+            </TouchableOpacity>
           </View>
         )}
+        ListEmptyComponent={<Text style={styles.emptyText}>No menu items available</Text>}
       />
     </View>
   );
@@ -72,7 +110,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     backgroundColor: 'black',
-    color: 'white',
   },
   title: {
     fontSize: 24,
@@ -83,6 +120,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingVertical: 10,
     color: 'white',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemDetails: {
+    flex: 1,
+    marginRight: 10,
   },
   navlinks: {
     flexDirection: 'row',
@@ -93,7 +137,6 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: 'white',
-    color: 'white',
     borderRadius: 15,
     padding: 10,
     margin: 5,
@@ -126,5 +169,25 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     marginBottom: 10,
+  },
+  deleteButton: {
+    backgroundColor: 'red',
+    padding: 5,
+    borderRadius: 5,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 14,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    color: 'white',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  emptyText: {
+    color: 'white',
+    fontStyle: 'italic',
+    marginTop: 20,
   },
 });
